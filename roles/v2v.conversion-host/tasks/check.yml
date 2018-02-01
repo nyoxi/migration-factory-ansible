@@ -37,4 +37,4 @@
       - v2v_nbdkit_plugin_working
   when:
     - v2v_manageiq_conversion_host_check is defined
-    - v2vmanageiq_conversion_host_check
+    - v2v_manageiq_conversion_host_check
