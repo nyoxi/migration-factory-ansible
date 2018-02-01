@@ -36,5 +36,5 @@
       - v2v_nbdkit_plugin_installed
       - v2v_nbdkit_plugin_working
   when:
-    - manageiq is defined
-    - manageiq.conversion_host_check is defined
+    - v2v_manageiq_conversion_host_check is defined
+    - v2vmanageiq_conversion_host_check
