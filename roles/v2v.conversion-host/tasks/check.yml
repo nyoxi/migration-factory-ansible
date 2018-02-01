@@ -27,3 +27,14 @@
 - name: Print the check result
   debug:
     msg: "VDDK installed: {{ v2v_vddk_library_installed }}. nbdkit plugin installed: {{ v2v_nbdkit_plugin_installed }}. nbdkit plugin working: {{ v2v_nbdkit_plugin_working }}."
+
+- name: Fail if we are running a check from CloudForms
+  assert:
+    msg: "We do a formal check for ManageIQ and it failed"
+    that:
+      - v2v_vddk_library_installed
+      - v2v_nbdkit_plugin_installed
+      - v2v_nbdkit_plugin_working
+  when:
+    - manageiq is defined
+    - manageiq.conversion_host_check is defined
