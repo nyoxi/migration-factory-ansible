@@ -1,0 +1,7 @@
+---
+- name: Debug play
+  hosts: all
+  tasks:
+    - name: Print a message
+      debug:
+        msg: "This is a message from {{ inventory_hostname }}."
