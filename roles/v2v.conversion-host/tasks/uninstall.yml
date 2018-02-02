@@ -16,6 +16,16 @@
     - nbdkit
     - nbdkit-plugin-vddk
 
+- name: Remove packages repository
+  file:
+    path: /etc/yum.repos.d/v2v-nbdkit.repo
+    state: absent
+
+- name: Remove EPEL repository
+  yum:
+    name: epel-release
+    state: absent
+
 - name: Remove VDDK library
   file:
     path: "{{ v2v_vddk_install_dir }}/vmware-vix-disklib-distrib"
