@@ -1,0 +1,34 @@
+---
+- name: Test play
+  hosts: localhost
+  connection: local
+#  vars:
+#    manageiq_connection:
+#      url: "https://miq.v2v.example.com"
+#      username: "admin"
+#      password: "smartvm"
+#      token: "db1af61996ee6f5a83554279dcf35d6a"
+#      X_MIQ_Group: "EvmGroup-super_administrator"
+#    manageiq:
+#      group: "groups/46000000000002"
+#      api_url: "https://miq.v2v.example.com"
+#      X_MIQ_Group: "EvmGroup-super_administrator"
+#      request_task: "requests/46000000000028/request_tasks/46000000000028"
+#      user: "users/46000000000001"
+#      api_token: "db1af61996ee6f5a83554279dcf35d6a"
+#      automate_workspace: "automate_workspaces/77dba385-00cb-4833-b210-bb2eebab7305"
+  tasks:
+    - debug:
+        var: manageiq_connection
+
+    - name: Update request message
+      manageiq_request_message:
+        message: hello from ansible
+        request_id: "{{ manageiq.request_task.split('/')[1] }}"
+#        manageiq_connection:
+#          url: "{{ manageiq_connection.url }}"
+#          username: "{{ manageiq_connection.username }}"
+#          password: "{{ manageiq_connection.password }}"
+#          token: "{{ manageiq_connection.token }}"
+#          verify_ssl: false
+#          ca_bundle_path: ""
