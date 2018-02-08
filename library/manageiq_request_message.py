@@ -75,8 +75,8 @@ def main():
     # initialize arguments
     argument_spec = dict(
         request_id=dict(type='str', required=True),
-        message=dict(type='str', required=True)
-#        manageiq_connection=dict(type='dict', required=True)
+        message=dict(type='str', required=True),
+        manageiq_connection=dict(type='dict', required=True)
     )
     # add the manageiq connection arguments to the arguments
     argument_spec.update(manageiq_argument_spec())

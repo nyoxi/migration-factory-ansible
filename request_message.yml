@@ -25,10 +25,4 @@
       manageiq_request_message:
         message: hello from ansible
         request_id: "{{ manageiq.request_task.split('/')[1] }}"
-#        manageiq_connection:
-#          url: "{{ manageiq_connection.url }}"
-#          username: "{{ manageiq_connection.username }}"
-#          password: "{{ manageiq_connection.password }}"
-#          token: "{{ manageiq_connection.token }}"
-#          verify_ssl: false
-#          ca_bundle_path: ""
+        manageiq_connection: "{{ manageiq_connection | combine({'verify_ssl': False, 'ca_bundle_path': '/dev/null'}) }}"
