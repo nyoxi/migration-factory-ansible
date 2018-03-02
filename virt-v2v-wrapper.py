@@ -46,6 +46,12 @@ VDSM = False
 DIRECT_BACKEND = not VDSM
 
 
+def error(msg):
+    logging.error(msg)
+    sys.stderr.write(msg)
+    sys.exit(1)
+
+
 def make_vdsm():
     """Makes sure the process runs as vdsm user"""
     uid = os.geteuid()
@@ -138,16 +144,23 @@ def write_state(state):
 def wrapper(data, state_file, v2v_log):
     v2v_args = [
         '/usr/bin/virt-v2v', '-v', '-x',
-        '-ic', data['vmware_uri'],
-        '-it', 'vddk',
-        '--password-file', data['vmware_password_file'],
-        '--vddk-libdir', '/opt/vmware-vix-disklib-distrib',
-        '--vddk-thumbprint', data['vmware_fingerprint'],
-        # TODO: subject to change
-        '-o', 'rhv',
-        '-os', data['export_domain'],
         data['vm_name'],
+        '-ic', data['vmware_uri'],
+        '--password-file', data['vmware_password_file'],
     ]
+
+    if data['transport_method'] == 'vddk':
+        v2v_args.extend([
+            '-it', 'vddk',
+            '--vddk-libdir', '/opt/vmware-vix-disklib-distrib',
+            '--vddk-thumbprint', data['vmware_fingerprint'],
+            ])
+
+    if 'export_domain' in data:
+        v2v_args.extend([
+            '-o', 'rhv',
+            '-os', data['export_domain'],
+            ])
 
     proc = None
     with open(v2v_log, 'w') as log:
@@ -221,16 +234,23 @@ try:
     # Make sure all the needed keys are in data. This is rather poor
     # validation, but...
     for k in [
-            'export_domain',
             'vm_name',
             'vmware_fingerprint',
             'vmware_uri',
             'vmware_password',
             ]:
         if k not in data:
-            logging.error('Missing argument: %s', k)
-            sys.stderr.write('Missing argument: %s' % k)
-            sys.exit(1)
+            error('Missing argument: %s' % k)
+
+    # Transports (only VDDK for now)
+    if 'transport_method' not in data:
+        error('No transport method specified')
+    if data['transport_method'] != 'vddk':
+        error('Unknown transport method: %s', data['transport_method'])
+
+    # Targets (only export domain for now)
+    if 'export_domain' not in data:
+        error('No target specified')
 
     # Send some useful info on stdout in JSON
     print(json.dumps({
