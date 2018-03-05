@@ -32,6 +32,7 @@ if six.PY2:
     import subprocess32 as subprocess
 else:
     import subprocess
+    xrange = range
 
 # import ovirtsdk4 as sdk
 # import ovirtsdk4.types as types
@@ -98,9 +99,13 @@ class OutputParser(object):
 
     COPY_DISK_RE = re.compile(br'.*Copying disk (\d+)/(\d+) to.*')
     DISK_PROGRESS_RE = re.compile(br'\s+\((\d+\.\d+)/100%\)')
+    NBDKIT_DISK_PATH_RE = re.compile(
+        br'nbdkit: debug: Opening file (.*) \(.*\)')
 
     def __init__(self, v2v_log):
         self._log = open(v2v_log, 'rU')
+        self._current_disk = None
+        self._current_path = None
 
     def parse(self, state):
         line = None
@@ -109,20 +114,69 @@ class OutputParser(object):
             m = self.COPY_DISK_RE.match(line)
             if m is not None:
                 try:
-                    state['current_disk'] = int(m.group(1))
+                    self._current_disk = int(m.group(1))-1
+                    self._current_path = None
                     state['disk_count'] = int(m.group(2))
                     logging.info('Copying disk %d/%d',
-                                 state['current_disk'], state['disk_count'])
+                                 self._current_disk+1, state['disk_count'])
+                    if state['disk_count'] != len(state['disks']):
+                        logging.warning(
+                            'Number of supplied disk paths (%d) does not match'
+                            ' number of disks in VM (%s)',
+                            len(state['disks']),
+                            state['disk_count'])
                 except ValueError:
                     logging.exception('Conversion error')
+
+            m = self.NBDKIT_DISK_PATH_RE.match(line)
+            if m is not None:
+                self._current_path = m.group(1)
+                if self._current_disk is not None:
+                    logging.info('Copying path: %s', self._current_path)
+                    self._locate_disk(state)
+
             m = self.DISK_PROGRESS_RE.match(line)
             if m is not None:
-                state['progress'] = m.group(1)
-                logging.info('Updated progress: %s', state['progress'])
+                if self._current_path is not None and \
+                        self._current_disk is not None:
+                    state['disks'][self._current_disk]['progress'] = \
+                        m.group(1)
+                    logging.debug('Updated progress: %s', m.group(1))
+                else:
+                    logging.debug('Skipping progress update for unknown disk')
         return state
 
     def close(self):
         self._log.close()
+
+    def _locate_disk(self, state):
+        if self._current_disk is None:
+            # False alarm, not copying yet
+            return
+
+        # NOTE: We assume that _current_disk is monotonic
+        for i in xrange(self._current_disk, len(state['disks'])):
+            if state['disks'][i]['path'] == self._current_path:
+                if i == self._current_disk:
+                    # We have correct index
+                    logging.debug('Found path at correct index')
+                else:
+                    # Move item to current index
+                    logging.debug('Moving path from index %d to %d', i,
+                                  self._current_disk)
+                    d = state['disks'].pop(i)
+                    state['disks'].insert(self._current_disk, d)
+                return
+
+        # Path not found
+        logging.debug('Path \'%s\' not found in %r', self._current_path,
+                      state['disks'])
+        state['disks'].insert(
+            self._current_disk,
+            {
+                'path': self._current_path,
+                'progress': 0,
+            })
 
 
 @contextmanager
@@ -182,8 +236,17 @@ def wrapper(data, state_file, v2v_log):
         state = {
             'started': True,
             'pid': proc.pid,
-            'progress': 'initializing',
+            'disks': [],
             }
+        if 'source_disks' in data:
+            logging.debug('Initializing disk list from %r',
+                          data['source_disks'])
+            for d in data['source_disks']:
+                state['disks'].append({
+                    'path': d,
+                    'progress': 0})
+            state['disk_count'] = len(data['source_disks'])
+
         write_state(state)
         with log_parser(v2v_log) as parser:
             while proc.poll() is None:
@@ -195,8 +258,9 @@ def wrapper(data, state_file, v2v_log):
             state = parser.parse(state)
     except Exception:
         logging.exception('Error while monitoring virt-v2v')
-        logging.info('Killing virt-v2v process')
-        proc.kill()
+        if proc.poll() is None:
+            logging.info('Killing virt-v2v process')
+            proc.kill()
 
     state['return_code'] = proc.returncode
     state['finished'] = True
