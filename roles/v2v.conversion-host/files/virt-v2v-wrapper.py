@@ -139,9 +139,12 @@ class OutputParser(object):
             if m is not None:
                 if self._current_path is not None and \
                         self._current_disk is not None:
-                    state['disks'][self._current_disk]['progress'] = \
-                        m.group(1)
-                    logging.debug('Updated progress: %s', m.group(1))
+                    try:
+                        state['disks'][self._current_disk]['progress'] = \
+                            float(m.group(1))
+                        logging.debug('Updated progress: %s', m.group(1))
+                    except ValueError:
+                        logging.exception('Conversion error')
                 else:
                     logging.debug('Skipping progress update for unknown disk')
         return state
