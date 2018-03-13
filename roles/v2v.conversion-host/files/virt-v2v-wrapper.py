@@ -284,9 +284,6 @@ def write_password(password, password_files):
 
 ###########
 
-if VDSM:
-    make_vdsm()
-
 log_tag = '%s-%d' % (time.strftime('%Y%m%dT%H%M%S'), os.getpid())
 v2v_log = os.path.join(VDSM_LOG_DIR, 'v2v-import-%s.log' % log_tag)
 wrapper_log = os.path.join(VDSM_LOG_DIR, 'v2v-import-%s-wrapper.log' % log_tag)
@@ -296,6 +293,9 @@ logging.basicConfig(
     level=LOG_LEVEL,
     filename=wrapper_log,
     format='%(asctime)s:%(levelname)s: %(message)s (%(module)s:%(lineno)d)')
+
+if VDSM:
+    make_vdsm()
 
 logging.info('Will store virt-v2v log in: %s', v2v_log)
 logging.info('Will store state file in: %s', state_file)
@@ -327,17 +327,17 @@ try:
     if 'export_domain' not in data:
         error('No target specified')
 
+    # Store password(s)
+    logging.info('Writing password file(s)')
+    data['vmware_password_file'] = write_password(data['vmware_password'],
+                                                  password_files)
+
     # Send some useful info on stdout in JSON
     print(json.dumps({
         'v2v_log': v2v_log,
         'wrapper_log': wrapper_log,
         'state_file': state_file,
     }))
-
-    # Store password(s)
-    logging.info('Writing password file(s)')
-    data['vmware_password_file'] = write_password(data['vmware_password'],
-                                                  password_files)
 
     # Let's get to work
     logging.info('Daemonizing')
