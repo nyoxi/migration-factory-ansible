@@ -274,6 +274,14 @@ def wrapper(data, state_file, v2v_log):
     # - clean disks on error?
 
 
+def write_password(password, password_files):
+    pfile = tempfile.mkstemp(suffix='.v2v')
+    password_files.append(pfile[1])
+    os.write(pfile[0], bytes(password.encode('utf-8')))
+    os.close(pfile[0])
+    return pfile[1]
+
+
 ###########
 
 if VDSM:
@@ -328,12 +336,8 @@ try:
 
     # Store password(s)
     logging.info('Writing password file(s)')
-
-    pfile = tempfile.mkstemp(suffix='.v2v')
-    data['vmware_password_file'] = pfile[1]
-    password_files.append(data['vmware_password_file'])
-    os.write(pfile[0], data['vmware_password'])
-    os.close(pfile[0])
+    data['vmware_password_file'] = write_password(data['vmware_password'],
+                                                  password_files)
 
     # Let's get to work
     logging.info('Daemonizing')
