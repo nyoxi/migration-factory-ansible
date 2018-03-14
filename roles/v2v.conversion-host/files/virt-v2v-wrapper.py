@@ -103,13 +103,13 @@ class OutputParser(object):
         br'nbdkit: debug: Opening file (.*) \(.*\)')
 
     def __init__(self, v2v_log):
-        self._log = open(v2v_log, 'rU')
+        self._log = open(v2v_log, 'rbU')
         self._current_disk = None
         self._current_path = None
 
     def parse(self, state):
         line = None
-        while line != '':
+        while line != b'':
             line = self._log.readline()
             m = self.COPY_DISK_RE.match(line)
             if m is not None:
@@ -130,7 +130,7 @@ class OutputParser(object):
 
             m = self.NBDKIT_DISK_PATH_RE.match(line)
             if m is not None:
-                self._current_path = m.group(1)
+                self._current_path = m.group(1).decode()
                 if self._current_disk is not None:
                     logging.info('Copying path: %s', self._current_path)
                     self._locate_disk(state)
