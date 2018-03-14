@@ -204,6 +204,7 @@ def wrapper(data, state_file, v2v_log):
         data['vm_name'],
         '-ic', data['vmware_uri'],
         '--password-file', data['vmware_password_file'],
+        '--bridge', 'ovirtmgmt',
     ]
 
     if data['transport_method'] == 'vddk':
