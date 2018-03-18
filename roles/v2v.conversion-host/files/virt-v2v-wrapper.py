@@ -204,6 +204,7 @@ def wrapper(data, state_file, v2v_log):
         data['vm_name'],
         '-ic', data['vmware_uri'],
         '--password-file', data['vmware_password_file'],
+        '-of', data['output_format'],
         '--bridge', 'ovirtmgmt',
     ]
 
@@ -317,6 +318,14 @@ try:
             ]:
         if k not in data:
             error('Missing argument: %s' % k)
+
+    # Output file format (raw or qcow2)
+    if 'output_format' in data:
+        if data['output_format'] not in ('raw', 'qcow2'):
+            error('Invalid output format %r, expected raw or qcow2' %
+                  data['output_format'])
+    else:
+        data['output_format'] = 'raw'
 
     # Transports (only VDDK for now)
     if 'transport_method' not in data:
